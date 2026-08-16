@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Env
+.env
+
+# Airflow demo instance (created by demo/seed.py, never committed)
+airflow-demo/
+*.db
+*.db-shm
+*.db-wal
+logs/
+
+# Auditor output
+reports/

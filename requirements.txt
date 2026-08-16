@@ -1,0 +1,5 @@
+# Auditor runtime. Airflow itself is NOT pinned here — the auditor talks to a
+# running Airflow over REST and does not import it. Only demo/seed.py needs a
+# local Airflow, and it uses whichever one is on PATH.
+httpx>=0.27
+python-dotenv>=1.0
