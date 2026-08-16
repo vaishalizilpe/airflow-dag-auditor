@@ -80,16 +80,22 @@ flakiness metric against DAGs whose real flakiness you don't already know, so
 the seeder **authors** its fixtures rather than borrowing them — three DAGs,
 each engineered to exhibit exactly one pathology:
 
-| DAG | Pathology | Induced by | Ground truth |
+| DAG | Pathology | Induced by | Ground truth over 21 days |
 |---|---|---|---|
-| `flaky_ingest` | Flakiness | Fails when `random() < 0.4`, `retries=2` | ~40% retry rate |
-| `drifting_transform` | Runtime drift | Sleeps longer each logical date | Known linear slope |
-| `orphaned_report` | Orphaned | Scheduled, never succeeds | 0 successful runs |
+| `flaky_ingest` | Flakiness | Attempt fails when a date-seeded roll `< 0.4 / attempt`, `retries=2` | 10 failed of 30 attempts (33.3%); 5 runs rescued by a retry |
+| `drifting_transform` | Runtime drift | Sleeps `0.5s + 0.2s × days_elapsed` | Linear slope of +0.2s/day |
+| `orphaned_report` | Orphaned | Raises on a connection removed during a migration | 0 successful runs; 42 failed of 42 attempts |
 
-Run history is generated with `airflow backfill create` over a past date range,
-which compresses three weeks of scheduling into a few minutes. The flaky task
-genuinely fails and retries, which is what populates `task_instance_history` —
-without it, flakiness is not merely thin but uncomputable.
+The roll is derived from the logical date rather than `random()`, so the same
+date range always produces the same pass/fail pattern — a fixture you can't
+predict is a fixture you can't validate against.
+
+Run history is generated with `airflow dags test`, which executes one DagRun
+synchronously per logical date. That needs no scheduler and no broker, so the
+seed is a single command. The flaky task genuinely fails and retries, and each
+failed attempt is archived to `task_instance_history` — which is what makes
+flakiness measurable at all. Without those archived attempts a rescued run is
+indistinguishable from a clean one.
 
 **The seeder never touches an existing Airflow installation.** It provisions a
 throwaway `AIRFLOW_HOME` (`./airflow-demo/`, gitignored) so cloning this repo
