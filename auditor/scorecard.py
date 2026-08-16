@@ -43,7 +43,7 @@ def render(results: list[DagFlakiness]) -> str:
         "## Flakiness",
         "",
         "Share of task attempts that failed. A high rate with a low failure "
-        "count means retries are absorbing the problem — the DAG looks healthy "
+        "count means retries are absorbing the problem: the DAG looks healthy "
         "while doing the same work several times.",
         "",
     ]
@@ -61,17 +61,17 @@ def render(results: list[DagFlakiness]) -> str:
             masked = (
                 f"{s.retry_masked_runs} of {s.successful_runs}"
                 if s.successful_runs
-                else "—"
+                else "n/a"
             )
             lines.append(
                 f"| `{s.dag_id}` | {s.flakiness_rate:.1%} | {_severity(s)} | "
                 f"{s.failed_attempts} / {s.attempts} | {masked} | "
-                f"`{s.worst_task or '—'}` |"
+                f"`{s.worst_task or 'n/a'}` |"
             )
         lines.append("")
 
         # Rank order is by flakiness, which puts a DAG that fails outright on
-        # top. That DAG is already visible to everyone — it turns dashboards
+        # top. That DAG is already visible to everyone, since it turns dashboards
         # red. The finding worth leading with is the one nothing else reports:
         # the DAG that looks healthy because retries keep rescuing it.
         masked = max(
@@ -87,7 +87,7 @@ def render(results: list[DagFlakiness]) -> str:
                 f"{masked.successful_runs} successful runs that only passed "
                 f"because of a retry** ({masked.retry_masked_rate:.0%}). Those "
                 f"runs are green everywhere else, so this will never show up in "
-                f"a failure report — but `{masked.worst_task}` is failing "
+                f"a failure report, but `{masked.worst_task}` is failing "
                 f"regularly and retries are the only thing covering it. When a "
                 f"bad run eventually exhausts them, it will look like a sudden "
                 f"new problem rather than one that has been running for weeks.",

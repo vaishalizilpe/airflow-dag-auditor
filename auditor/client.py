@@ -1,7 +1,7 @@
 """
 Airflow 3 REST client.
 
-Talks to `/api/v2` using the JWT flow introduced in Airflow 3 — POST credentials
+Talks to `/api/v2` using the JWT flow introduced in Airflow 3: POST credentials
 to `/auth/token`, then send the returned token as a bearer on every call. This
 is *not* compatible with Airflow 2.x, whose API is `/api/v1` and authenticates
 differently.

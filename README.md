@@ -4,19 +4,19 @@ An Airflow DAG that audits other Airflow deployments.
 
 It reads your DAG, run, and task history through the Airflow 3 REST API and
 produces a ranked scorecard of the pipelines most likely to be causing you
-problems — flaky tasks, runtime drift, failures hidden behind retries, and DAGs
+problems: flaky tasks, runtime drift, failures hidden behind retries, and DAGs
 that have quietly stopped succeeding.
 
 > **Status: v0 shipped.** Flakiness detection works end to end against a real
 > Airflow 3 instance. Runtime drift, orphan detection, and the LLM layers are
-> not built yet — see the build order below. This README is updated as each
+> not built yet. See the build order below. This README is updated as each
 > version lands rather than describing features that don't exist.
 
 ---
 
 ## Why this exists
 
-Most Airflow monitoring tells you a task failed. That's the easy case — it
+Most Airflow monitoring tells you a task failed. That's the easy case, because it
 pages someone. The expensive failures are the quiet ones:
 
 - A task that fails 40% of the time but always passes on retry, so nobody
@@ -32,7 +32,7 @@ if you go looking. This goes looking.
 
 ## Design: five layers, built bottom-up
 
-AI engineering has accumulated a stack of techniques — prompting, then context,
+AI engineering has accumulated a stack of techniques: prompting, then context,
 then harness, then loop, and now graph. They are a **stack, not a ladder**: each
 layer only earns its place if the layer beneath it is solid. The common failure
 is reaching for an agent loop on top of a foundation that returns wrong answers,
@@ -42,7 +42,7 @@ This project applies them in order, and only where they pay for themselves:
 
 | Layer | Where it lands here | Earns its place when |
 |---|---|---|
-| — | Metrics computed from run history | Always. This is the foundation. |
+| (none) | Metrics computed from run history | Always. This is the foundation. |
 | **Harness** | The audit runs *as* an Airflow DAG | Airflow can audit Airflow on a schedule |
 | **Prompt** | Remediation text written per finding | Findings are already correct without it |
 | **Context** | DAG source + run history fed into the prompt | Generic advice is provably worse than specific |
@@ -62,8 +62,8 @@ actionable one.
 |---|---|---|---|
 | **v0** ✅ | REST client, demo seeder, flakiness metric, markdown scorecard | none | Shipped. Scorecard leads with the retry-masked DAG; all figures match fixture ground truth |
 | v1 | Runtime drift, retry-masked failures, orphaned DAGs, per-DAG score | none | All three seeded pathologies rank correctly |
-| v2 | `dags/dag_audit.py` — the auditor as a scheduled DAG | harness | Airflow audits Airflow; report lands as an artifact |
-| v3 | `explain.py` — remediation per finding, skipped cleanly with no API key | prompt | Advice is actionable without opening the DAG |
+| v2 | `dags/dag_audit.py`, the auditor as a scheduled DAG | harness | Airflow audits Airflow; report lands as an artifact |
+| v3 | `explain.py`, remediation per finding, skipped cleanly with no API key | prompt | Advice is actionable without opening the DAG |
 | v4 | DAG source + history slice fed into the prompt | context | Advice cites the actual failing operator, not generic tips |
 | v5 | Per-DAG investigation, then concurrent fan-out | loop → graph | Single-pass explanations demonstrably misdiagnose something the loop gets right |
 
@@ -77,7 +77,7 @@ work together. The remaining three are then copy-and-adapt.
 
 A scorecard is only trustworthy if you can check it. You cannot validate a
 flakiness metric against DAGs whose real flakiness you don't already know, so
-the seeder **authors** its fixtures rather than borrowing them — three DAGs,
+the seeder **authors** its fixtures rather than borrowing them. Three DAGs,
 each engineered to exhibit exactly one pathology:
 
 | DAG | Pathology | Induced by | Ground truth over 21 days |
@@ -87,13 +87,13 @@ each engineered to exhibit exactly one pathology:
 | `orphaned_report` | Orphaned | Raises on a connection removed during a migration | 0 successful runs; 42 failed of 42 attempts |
 
 The roll is derived from the logical date rather than `random()`, so the same
-date range always produces the same pass/fail pattern — a fixture you can't
+date range always produces the same pass/fail pattern. A fixture you cannot
 predict is a fixture you can't validate against.
 
 Run history is generated with `airflow dags test`, which executes one DagRun
 synchronously per logical date. That needs no scheduler and no broker, so the
 seed is a single command. The flaky task genuinely fails and retries, and each
-failed attempt is archived to `task_instance_history` — which is what makes
+failed attempt is archived to `task_instance_history`, which is what makes
 flakiness measurable at all. Without those archived attempts a rescued run is
 indistinguishable from a clean one.
 
@@ -151,14 +151,14 @@ The auditor only issues GET requests.
 ```
 | DAG                 | Flakiness | Severity | Failed / total | Retry-masked | Worst task           |
 |---------------------|----------:|----------|---------------:|-------------:|----------------------|
-| `orphaned_report`   |    100.0% | high     |        42 / 42 |            — | `build_weekly_report`|
+| `orphaned_report`   |    100.0% | high     |        42 / 42 |          n/a | `build_weekly_report`|
 | `flaky_ingest`      |     33.3% | high     |        10 / 30 |    5 of 20   | `pull_from_upstream` |
 ```
 
 Every figure is checkable against the fixtures' documented ground truth:
 `flaky_ingest` fails an attempt when a date-seeded roll falls under
 `0.4 / attempt_number`, which over 21 days produces 15 clean runs, 3 rescued on
-the second attempt, 2 on the third, and 1 that exhausts its retries — exactly
+the second attempt, 2 on the third, and 1 that exhausts its retries, which is exactly
 the 10 failed attempts out of 30 shown above.
 
 The report leads with `flaky_ingest` rather than the DAG at the top of the

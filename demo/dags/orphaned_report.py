@@ -9,7 +9,7 @@ Ground truth for validating the orphaned-DAG metric:
     successful runs = 0, across every run in the window.
 
 The failure is a missing config key rather than a random roll, so this DAG
-fails identically on every attempt — unlike `flaky_ingest`, no retry saves it.
+fails identically on every attempt. Unlike `flaky_ingest`, no retry saves it.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from airflow.decorators import dag, task
 
 REQUIRED_CONNECTION = "warehouse_readonly_v2"
 
-# Keep seeding fast — see the note in flaky_ingest.py.
+# Keep seeding fast. See the note in flaky_ingest.py.
 RETRY_DELAY = timedelta(seconds=1)
 
 
@@ -38,7 +38,7 @@ def orphaned_report():
     def build_weekly_report() -> None:
         """Depends on a connection that was removed during a migration."""
         raise RuntimeError(
-            f"connection '{REQUIRED_CONNECTION}' is not defined — "
+            f"connection '{REQUIRED_CONNECTION}' is not defined, "
             "renamed during the warehouse migration and never updated here"
         )
 

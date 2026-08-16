@@ -1,7 +1,7 @@
 """
 Seed fixture: a DAG that fails intermittently but almost always passes on retry.
 
-This is the pathology the auditor exists to catch. Nothing here pages anyone —
+This is the pathology the auditor exists to catch. Nothing here pages anyone, because
 the DAG's final state is usually `success`, so dashboards look clean. The cost
 is hidden in the retry count, and it only becomes an incident when a bad run
 exhausts its retries at the worst moment.
@@ -51,8 +51,8 @@ def flaky_ingest():
         roll = _deterministic_roll(context["logical_date"])
         attempt = context["task_instance"].try_number
 
-        # Later attempts get a better roll, so retries usually succeed —
-        # that is exactly what makes this pathology invisible on a dashboard.
+        # Later attempts get a better roll, so retries usually succeed,
+        # which is exactly what makes this pathology invisible on a dashboard.
         if roll < FAILURE_RATE / attempt:
             raise RuntimeError(
                 f"upstream timed out (roll={roll:.3f}, attempt={attempt})"
