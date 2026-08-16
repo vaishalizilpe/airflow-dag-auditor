@@ -56,7 +56,7 @@ def test_retry_masked_run_is_counted():
 
 
 def test_exhausted_retries_are_not_retry_masked():
-    """A run that failed outright is visible already — it isn't 'masked'."""
+    """A run that failed outright is visible already, so it is not 'masked'."""
     client = FakeClient(
         [{"state": "failed", "tries": ["failed", "failed", "failed"]}]
     )

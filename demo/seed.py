@@ -16,7 +16,7 @@ into your real scheduler.
 
 History is generated with `airflow dags test`, which executes one DagRun
 synchronously without needing a scheduler or API server running. Failed
-attempts are archived to `task_instance_history` — which is what makes
+attempts are archived to `task_instance_history`, which is what makes
 flakiness measurable at all.
 """
 

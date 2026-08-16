@@ -3,7 +3,7 @@ Flakiness: the failures that never page anyone.
 
 A task that fails and then succeeds on retry leaves the DAG green. Dashboards
 show success, nobody investigates, and the cost stays invisible until a bad run
-exhausts its retries during an incident — at which point it looks like a sudden
+exhausts its retries during an incident, at which point it looks like a sudden
 new problem rather than one that has been there for months.
 
 The signal is in the attempt history. Airflow archives every failed attempt, so
@@ -61,7 +61,7 @@ class DagFlakiness:
 
     @property
     def has_evidence(self) -> bool:
-        """False when there is no history to judge — report, don't score."""
+        """False when there is no history to judge. Report, do not score."""
         return self.total_runs > 0
 
 

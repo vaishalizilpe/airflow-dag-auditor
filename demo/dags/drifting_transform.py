@@ -1,7 +1,7 @@
 """
 Seed fixture: a DAG whose runtime creeps upward every day.
 
-Never fails, so it never alerts. The damage is scheduling pressure — it slowly
+Never fails, so it never alerts. The damage is scheduling pressure. It slowly
 eats the gap before whatever runs after it, until one day the two overlap and
 something downstream reads half-written data.
 
