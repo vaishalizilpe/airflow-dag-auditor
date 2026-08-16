@@ -70,17 +70,27 @@ def render(results: list[DagFlakiness]) -> str:
             )
         lines.append("")
 
-        worst = flagged[0]
-        if worst.retry_masked_runs:
+        # Rank order is by flakiness, which puts a DAG that fails outright on
+        # top. That DAG is already visible to everyone — it turns dashboards
+        # red. The finding worth leading with is the one nothing else reports:
+        # the DAG that looks healthy because retries keep rescuing it.
+        masked = max(
+            (s for s in flagged if s.retry_masked_runs),
+            key=lambda s: s.retry_masked_runs,
+            default=None,
+        )
+        if masked is not None:
             lines += [
                 "### What to look at first",
                 "",
-                f"`{worst.dag_id}` reported **{worst.retry_masked_runs} successful "
-                f"run(s) that required a retry**. Those runs are green in every "
-                f"dashboard, so this will not appear in a failure report — the "
-                f"task `{worst.worst_task}` is failing regularly and being "
-                f"rescued. Retries are currently the only thing keeping it "
-                f"passing.",
+                f"`{masked.dag_id}` had **{masked.retry_masked_runs} of "
+                f"{masked.successful_runs} successful runs that only passed "
+                f"because of a retry** ({masked.retry_masked_rate:.0%}). Those "
+                f"runs are green everywhere else, so this will never show up in "
+                f"a failure report — but `{masked.worst_task}` is failing "
+                f"regularly and retries are the only thing covering it. When a "
+                f"bad run eventually exhausts them, it will look like a sudden "
+                f"new problem rather than one that has been running for weeks.",
                 "",
             ]
 

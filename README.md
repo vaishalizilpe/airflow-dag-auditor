@@ -7,9 +7,10 @@ produces a ranked scorecard of the pipelines most likely to be causing you
 problems — flaky tasks, runtime drift, failures hidden behind retries, and DAGs
 that have quietly stopped succeeding.
 
-> **Status: v0 in progress.** Nothing below marked ✅ is built yet. This README
-> documents the design and the build order; it will be updated as each version
-> lands rather than describing features that don't exist.
+> **Status: v0 shipped.** Flakiness detection works end to end against a real
+> Airflow 3 instance. Runtime drift, orphan detection, and the LLM layers are
+> not built yet — see the build order below. This README is updated as each
+> version lands rather than describing features that don't exist.
 
 ---
 
@@ -59,7 +60,7 @@ actionable one.
 
 | Ver | Ships | Layer | Done when |
 |---|---|---|---|
-| **v0** | REST client, demo seeder, flakiness metric, markdown scorecard | none | Scorecard names the seeded flaky DAG worst, verified by hand against the DB |
+| **v0** ✅ | REST client, demo seeder, flakiness metric, markdown scorecard | none | Shipped. Scorecard leads with the retry-masked DAG; all figures match fixture ground truth |
 | v1 | Runtime drift, retry-masked failures, orphaned DAGs, per-DAG score | none | All three seeded pathologies rank correctly |
 | v2 | `dags/dag_audit.py` — the auditor as a scheduled DAG | harness | Airflow audits Airflow; report lands as an artifact |
 | v3 | `explain.py` — remediation per finding, skipped cleanly with no API key | prompt | Advice is actionable without opening the DAG |
@@ -106,7 +107,59 @@ cannot write DAG files into your real scheduler.
 
 ## Quickstart
 
-Not yet — lands with v0.
+Five minutes from clone to a scorecard, against a throwaway Airflow that this
+creates for you. Your own Airflow is never touched.
+
+```bash
+pip install -r requirements.txt
+
+# 1. Provision an isolated Airflow and seed 21 days of history.
+#    Takes ~4 minutes; the fixtures genuinely run, fail, and retry.
+python -m demo.seed --reset
+
+# 2. Start the demo instance's API server.
+AIRFLOW_HOME=$PWD/airflow-demo \
+AIRFLOW__CORE__LOAD_EXAMPLES=False \
+  airflow api-server --port 8081
+
+# 3. In another shell, audit it.
+AIRFLOW_HOME=$PWD/airflow-demo \
+AIRFLOW_API_URL=http://localhost:8081 \
+  python -m auditor.scorecard
+```
+
+To audit a **real** deployment instead, skip steps 1 and 2 and point the
+auditor at it:
+
+```bash
+AIRFLOW_API_URL=https://airflow.example.com \
+AIRFLOW_USERNAME=your_user \
+AIRFLOW_PASSWORD=your_password \
+  python -m auditor.scorecard -o audit.md
+```
+
+The auditor only issues GET requests.
+
+### What the demo produces
+
+```
+| DAG                 | Flakiness | Severity | Failed / total | Retry-masked | Worst task           |
+|---------------------|----------:|----------|---------------:|-------------:|----------------------|
+| `orphaned_report`   |    100.0% | high     |        42 / 42 |            — | `build_weekly_report`|
+| `flaky_ingest`      |     33.3% | high     |        10 / 30 |    5 of 20   | `pull_from_upstream` |
+```
+
+Every figure is checkable against the fixtures' documented ground truth:
+`flaky_ingest` fails an attempt when a date-seeded roll falls under
+`0.4 / attempt_number`, which over 21 days produces 15 clean runs, 3 rescued on
+the second attempt, 2 on the third, and 1 that exhausts its retries — exactly
+the 10 failed attempts out of 30 shown above.
+
+The report leads with `flaky_ingest` rather than the DAG at the top of the
+table, and that is deliberate: `orphaned_report` fails outright, so it already
+turns dashboards red and someone knows about it. `flaky_ingest` passes 20 of 21
+runs and is invisible everywhere else. That is the finding this tool exists to
+produce.
 
 ---
 
