@@ -62,6 +62,7 @@ actionable one.
 |---|---|---|---|
 | **v0** ✅ | REST client, demo seeder, flakiness metric, markdown scorecard | none | Shipped. Scorecard leads with the retry-masked DAG; all figures match fixture ground truth |
 | v1 | Runtime drift, retry-masked failures, orphaned DAGs, per-DAG score | none | All three seeded pathologies rank correctly |
+| v1.5 | Static config audit: risky settings that have not failed *yet* | none | Produces findings against a deployment with zero run history |
 | v2 | `dags/dag_audit.py`, the auditor as a scheduled DAG | harness | Airflow audits Airflow; report lands as an artifact |
 | v3 | `explain.py`, remediation per finding, skipped cleanly with no API key | prompt | Advice is actionable without opening the DAG |
 | v4 | DAG source + history slice fed into the prompt | context | Advice cites the actual failing operator, not generic tips |
@@ -70,6 +71,19 @@ actionable one.
 v0 deliberately implements **one** metric rather than four. One metric
 end-to-end proves the client, the seeder, the computation, and the report all
 work together. The remaining three are then copy-and-adapt.
+
+**On v1.5.** Everything through v1 reads run history, so it can only report
+what has already gone wrong. A DAG can be plainly misconfigured and still look
+clean because it has not been unlucky yet: no retries on a task that calls a
+flaky external API, no timeout on something that can hang and hold a pool, an
+unset `max_active_runs` on a job that must not overlap itself, `catchup=True`
+against a start date two years back. All of it is readable from the DAG's
+configuration through the same REST API, with no history required.
+
+That matters for adoption as much as for coverage. History-based findings need
+a deployment that has been running long enough to produce them, whereas config
+findings appear on first run. It stays deterministic, so it belongs below the
+prompt layer rather than after it.
 
 ---
 
